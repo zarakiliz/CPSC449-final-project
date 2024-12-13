@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
-from database import sub_plans_collection, db
+from database import sub_plans_collection, db, permissions_collection
 from bson import ObjectId
 
 app = FastAPI()
@@ -11,6 +11,10 @@ class CreatePlan(BaseModel):
     description: str
     permissions: List[str]
     usage_limit: int
+
+class Permission(BaseModel):
+    name: str # read, write, admin, etc
+    description: str # describes what the permission does
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -23,7 +27,7 @@ async def startup_db_client():
 
 # Subscription Plan Management
 
-#HoemPage
+#HomePage
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Cloud Service Management System. Use /plans in the URL to create a plan!"}
@@ -65,3 +69,45 @@ async def delete_plan(planId: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Plan not found")
     return {"message": "Plan deleted successfully"}
+
+# Permissions Management
+
+# Add Permission
+@app.post('/permissions')
+async def add_permission(permission: Permission):
+    # check for existing permission
+    existing_perm = await permissions_collection.find_one({'name': permission.name})
+    if existing_perm:
+        raise HTTPException(status_code=400, detail='Permission already exists')
+    
+    await permissions_collection.insert_one(permission.dict())
+    return {"message": "Permission created successfully"}
+
+# Modify Permission
+@app.put('/permissions/{permissionId}')
+async def modify_perm(permissionId: str, permission: Permission):
+    try:
+        object_id = ObjectId(permissionId)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid permissionId format")
+    result = await permissions_collection.update_one(
+        {'_id': object_id},
+        {"$set": permission.dict()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {'message': 'Permission updated successfully'}
+
+# Delete Permission
+@app.delete('/permissions/{permissionId}')
+async def delete_perm(permissionId: str):
+    try:
+        object_id = ObjectId(permissionId)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid permissionId format")
+    result = await permissions_collection.delete_one(
+        {'_id': object_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    return {"message": "Permission deleted successfully"}
