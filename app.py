@@ -21,11 +21,14 @@ async def startup_db_client():
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
 
+# Subscription Plan Management
 
+#HoemPage
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Cloud Service Management System. Use /plans in the URL to create a plan!"}
 
+#POST/plans (create plan)
 @app.post('/plans')
 async def create_plan(plan: CreatePlan):
     existing_plan = await sub_plans_collection.find_one({'name': plan.name})
@@ -34,6 +37,7 @@ async def create_plan(plan: CreatePlan):
     result = await sub_plans_collection.insert_one(plan.dict())
     return {"message": "Plan created successfully"}
 
+# Modify Plans
 @app.put('/plans/{planId}')
 async def modify_plan(planId: str, plan: CreatePlan):
     try:
@@ -48,6 +52,7 @@ async def modify_plan(planId: str, plan: CreatePlan):
         raise HTTPException(status_code=404, detail="Plan not found")
     return {'message': 'Plan updated successfully'}
 
+# Delete Plans
 @app.delete('/plans/{planId}')
 async def delete_plan(planId: str):
     try:
