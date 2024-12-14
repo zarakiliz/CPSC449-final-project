@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
-from database import sub_plans_collection, db, permissions_collection
+from database import sub_plans_collection, db, permissions_collection, user_subs_collection, usage_collection
 from bson import ObjectId
 
 app = FastAPI()
@@ -15,6 +15,15 @@ class CreatePlan(BaseModel):
 class Permission(BaseModel):
     name: str # read, write, admin, etc
     description: str # describes what the permission does
+
+class UserSub(BaseModel):
+    user_id: str #unique id for user
+    plan_id: str # id of subscribed plan
+    start_date: str
+
+class Usage(BaseModel):
+    used: int # amount of usage consumed
+    limit: int # usage limit for the plan 
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -111,3 +120,78 @@ async def delete_perm(permissionId: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Permission not found")
     return {"message": "Permission deleted successfully"}
+
+# User Subscription Handling
+
+# Subscribe to Plan
+@app.post('/subscriptions')
+async def subscribe(subscription: UserSub):
+    # Check if the user is already subscribed to a plan
+    existing_sub = await user_subs_collection.find_one({'user_id': subscription.user_id})
+    if existing_sub:
+        raise HTTPException(status_code=400, detail=f"User {subscription.user_id} already subscribed to a plan")
+    
+    await user_subs_collection.insert_one(subscription.dict())
+    return {"message": f"Subscription for user {subscription.user_id} created successfully"}
+
+# View subscription details
+@app.get('/subscriptions/{userId}')
+async def get_subscription(userId: str):
+    sub = await user_subs_collection.find_one({'user_id': userId})
+    if not sub:
+        raise HTTPException(status_code=404, detail=f"Subscription for user {userId} not found")
+    
+    # Include the subscription plan details
+    try:
+        plan = await sub_plans_collection.find_one({'_id': ObjectId(sub['plan_id'])})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid plan ID format")
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan with ID {sub['plan_id']} not found")
+    
+    sub['_id'] = str(sub['_id'])
+    plan['_id'] = str(plan['_id'])
+    sub['plan'] = plan
+    return sub
+
+# View usage statistics
+@app.get('/subscriptions/{userId}/usage')
+async def get_usage(userId: str):
+    sub = await user_subs_collection.find_one({'user_id': userId})
+    if not sub:
+        raise HTTPException(status_code=404, detail=f"Subscription for user {userId} not found")
+    
+    usage = await usage_collection.find_one({'user_id': userId})
+    if not usage:
+        raise HTTPException(status_code=404, detail=f"Usage data for user {userId} not found")
+    
+    plan = await sub_plans_collection.find_one({'_id': ObjectId(sub['plan_id'])})
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan with ID {sub['plan_id']} not found")
+    
+    usage_stats = Usage(used=usage['used'], limit=plan['usage_limit'])
+    return usage_stats.dict()
+
+
+# Assign/modify user plan
+@app.get('/subscriptions/{userID}/modify')
+async def modify_sub(userId: str, subscription:UserSub):
+    # check if plan exists
+    plan = await sub_plans_collection.find_one({'_id': ObjectId(subscription.plan_id)})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # update/modify user plan
+    result = await user_subs_collection.update_one(
+        {'user_id': userId},
+        {'$set': {
+            'plan_id': subscription.plan_id,
+            'start_date': subscription.start_date,
+            'end_date': subscription.end_date
+        }}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return {"message": "Subscription updated successfully"}
