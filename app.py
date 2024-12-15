@@ -175,7 +175,7 @@ async def get_usage(userId: str):
 
 
 # Assign/modify user plan
-@app.get('/subscriptions/{userId}/modify')
+@app.put('/subscriptions/{userId}/modify')
 async def modify_sub(userId: str, subscription:UserSub):
     # check if plan exists
     plan = await sub_plans_collection.find_one({'_id': ObjectId(subscription.plan_id)})
