@@ -6,18 +6,18 @@ from typing import List, Optional
 # Factoring as well
 
 # Plan Model
-class CreatePlan(BaseModel):
-    name: str = Field(..., min_length=3, max_length=50) # Basic length for string; needed in order to create the admin and users
-    description: str
-    permissions: List[str]
-    usage_limit: int
-
 
 class Permission(BaseModel):
     name: str # read, write, admin, etc
     description: str # describes what the permission does
     api_endpoint: str
 
+
+class CreatePlan(BaseModel):
+    name: str = Field(..., min_length=3, max_length=50) # Basic length for string; needed in order to create the admin and users
+    description: str
+    permissions: List[Permission]
+    usage_limit: int
 
 # Working on these laters
 class UserSub(BaseModel):

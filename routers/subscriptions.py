@@ -38,6 +38,8 @@ async def subscribe_to_plan(plan_name: str, user: dict = Depends(verify_customer
     return {"message": "Subscription created successfully", "subscription_id": str(result.inserted_id)}
 
 
+
+
 # View Subscription Details
 @router.get("/{userId}")
 async def get_subscription(userId: str):
@@ -68,6 +70,7 @@ async def get_subscription(userId: str):
         "usage_limit": usage_limit,
         "used": used
     }
+
 
 
 # Adding admin permision modficaiton
@@ -111,6 +114,7 @@ async def modify_subscription(userId: str, plan_name: str, admin: dict = Depends
 
 
 
+
 # Adding user usage of API
 # View Usage Statistics
 @router.get("/{userId}/usage")
@@ -131,3 +135,8 @@ async def view_usage_statistics(userId: str):
     return {"user_id": userId, 
             "used": usage["used"],
             "usage_limit": usage.get("usage_limit", 0)}
+
+
+
+
+
