@@ -12,14 +12,20 @@ router = APIRouter()
 
 @router.post("/")
 async def add_permission(permission: Permission, user: dict = Depends(verify_admin)):
-    # Check for existing permission
+    # Check for existing permission by name
     existing_perm = await permissions_collection.find_one({"name": permission.name})
     if existing_perm:
         raise HTTPException(status_code=400, detail="Permission already exists")
     
-    # Insert permission
-    result = await permissions_collection.insert_one(permission.dict())
+    # Insert permission into the database
+    new_permission = {
+        "name": permission.name,
+        "api_endpoint": permission.api_endpoint,
+        "description": permission.description
+    }
+    result = await permissions_collection.insert_one(new_permission)
     return {"message": "Permission created successfully", "permission_id": str(result.inserted_id)}
+
 
 # Modify a permission
 @router.put("/{permissionId}")
@@ -29,10 +35,15 @@ async def modify_permission(permissionId: str, permission: Permission, user: dic
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid permission ID format")
     
-    # Update permission
+    # Update permission fields
+    # Aadding permisiosn to the plans
     result = await permissions_collection.update_one(
         {"_id": object_id},
-        {"$set": permission.dict()}
+        {"$set": {
+            "name": permission.name,
+            "api_endpoint": permission.api_endpoint,
+            "description": permission.description
+        }}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Permission not found")

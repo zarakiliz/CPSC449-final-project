@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from typing import List
 from database import sub_plans_collection, db, permissions_collection, user_subs_collection, usage_collection
 from bson import ObjectId
-from routers import plans, permissions, subscriptions
+from routers import plans, permissions, subscriptions, access_control, usage
 from models import Permission, UserSub, Usage, CreatePlan
 app = FastAPI()
 # Notes to self, move MongoDV logic to util.py
@@ -24,6 +24,8 @@ async def startup_db_client():
 app.include_router(plans.router, prefix="/plans", tags=["Subscritpion Plans"])
 app.include_router(permissions.router, prefix="/permissions", tags=["Permissions"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["User Subscriptions"])
+app.include_router(access_control.router, prefix="/access", tags=["Access Control"])
+app.include_router(usage.router, prefix="/usage", tags =["Usage Tracking"])
 
 #HomePage
 @app.get("/")
@@ -178,110 +180,110 @@ async def list_users():
 #     return sub
 
 # View usage statistics
-@app.get('/subscriptions/{userId}/usage')
-async def get_usage(userId: str):
-    sub = await user_subs_collection.find_one({'user_id': userId})
-    if not sub:
-        raise HTTPException(status_code=404, detail=f"Subscription for user {userId} not found")
+# @app.get('/subscriptions/{userId}/usage')
+# async def get_usage(userId: str):
+#     sub = await user_subs_collection.find_one({'user_id': userId})
+#     if not sub:
+#         raise HTTPException(status_code=404, detail=f"Subscription for user {userId} not found")
     
-    usage = await usage_collection.find_one({'user_id': userId})
-    if not usage:
-        raise HTTPException(status_code=404, detail=f"Usage data for user {userId} not found")
+#     usage = await usage_collection.find_one({'user_id': userId})
+#     if not usage:
+#         raise HTTPException(status_code=404, detail=f"Usage data for user {userId} not found")
     
-    plan = await sub_plans_collection.find_one({'_id': ObjectId(sub['plan_id'])})
-    if not plan:
-        raise HTTPException(status_code=404, detail=f"Plan with ID {sub['plan_id']} not found")
+#     plan = await sub_plans_collection.find_one({'_id': ObjectId(sub['plan_id'])})
+#     if not plan:
+#         raise HTTPException(status_code=404, detail=f"Plan with ID {sub['plan_id']} not found")
     
-    usage_stats = Usage(used=usage['used'], limit=plan['usage_limit'])
-    return usage_stats.dict()
+#     usage_stats = Usage(used=usage['used'], limit=plan['usage_limit'])
+#     return usage_stats.dict()
 
 
 # Assign/modify user plan
-@app.put('/subscriptions/{userId}/modify')
-async def modify_sub(userId: str, subscription:UserSub):
-    # check if plan exists
-    plan = await sub_plans_collection.find_one({'_id': ObjectId(subscription.plan_id)})
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
+# @app.put('/subscriptions/{userId}/modify')
+# async def modify_sub(userId: str, subscription:UserSub):
+#     # check if plan exists
+#     plan = await sub_plans_collection.find_one({'_id': ObjectId(subscription.plan_id)})
+#     if not plan:
+#         raise HTTPException(status_code=404, detail="Plan not found")
     
-    # update/modify user plan
-    result = await user_subs_collection.update_one(
-        {'user_id': userId},
-        {'$set': {
-            'plan_id': subscription.plan_id,
-            'start_date': subscription.start_date,
-        }}
-    )
+#     # update/modify user plan
+#     result = await user_subs_collection.update_one(
+#         {'user_id': userId},
+#         {'$set': {
+#             'plan_id': subscription.plan_id,
+#             'start_date': subscription.start_date,
+#         }}
+#     )
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    return {"message": "Subscription updated successfully"}
+#     if result.matched_count == 0:
+#         raise HTTPException(status_code=404, detail="Subscription not found")
+#     return {"message": "Subscription updated successfully"}
 
 # Access Control
 
 # checks access permissions
-@app.get('/access/{userId}/{apiRequest}')
-async def check_access(userId:str, apiRequest:str):
-    # get user subscription
-    user_subscription = await user_subs_collection.find_one({'user_id': userId})
-    if not user_subscription:
-        raise HTTPException(status_code=404, detail="User not subscribed to any plan")
+# @app.get('/access/{userId}/{apiRequest}')
+# async def check_access(userId:str, apiRequest:str):
+#     # get user subscription
+#     user_subscription = await user_subs_collection.find_one({'user_id': userId})
+#     if not user_subscription:
+#         raise HTTPException(status_code=404, detail="User not subscribed to any plan")
     
-    plan = await sub_plans_collection.find_one({'_id': ObjectId(user_subscription['plan_id'])})
-    if not plan:
-        raise HTTPException(status_code=404, detail="Subscription plan not found")
+#     plan = await sub_plans_collection.find_one({'_id': ObjectId(user_subscription['plan_id'])})
+#     if not plan:
+#         raise HTTPException(status_code=404, detail="Subscription plan not found")
     
-    # check if apiRequest is in the user's permissions
-    if apiRequest in plan['permissions']:
-        return {"access_granted": True}
-    else:
-        raise HTTPException(status_code=403, detail="Access Denied")
+#     # check if apiRequest is in the user's permissions
+#     if apiRequest in plan['permissions']:
+#         return {"access_granted": True}
+#     else:
+#         raise HTTPException(status_code=403, detail="Access Denied")
     
 # Usage Tracking and Limit Enforcement
 
-# track API request
-@app.post('/usage/{userId}')
-async def track_api(userId: str):
-    # check if user has a subscription
-    user_subscription = await user_subs_collection.find_one({'user_id': userId})
-    if not user_subscription:
-        raise HTTPException(status_code=404, detail="User not subscribed to any plan")
+# # track API request
+# @app.post('/usage/{userId}')
+# async def track_api(userId: str):
+#     # check if user has a subscription
+#     user_subscription = await user_subs_collection.find_one({'user_id': userId})
+#     if not user_subscription:
+#         raise HTTPException(status_code=404, detail="User not subscribed to any plan")
 
-    # get current usage
-    usage = await usage_collection.find_one({'user_id': userId})
-    if not usage:
-        usage = {"user_id": userId, "used": 0, "limit": 0}
+#     # get current usage
+#     usage = await usage_collection.find_one({'user_id': userId})
+#     if not usage:
+#         usage = {"user_id": userId, "used": 0, "limit": 0}
 
     
-    # Increment usage
-    usage['used'] += 1
+#     # Increment usage
+#     usage['used'] += 1
 
-    # Save the updated usage data
-    await usage_collection.replace_one({'user_id': userId}, usage, upsert=True)
+#     # Save the updated usage data
+#     await usage_collection.replace_one({'user_id': userId}, usage, upsert=True)
 
-    return {"message": "Usage tracked", "usage_count": usage['used']}
+#     return {"message": "Usage tracked", "usage_count": usage['used']}
 
 # check limit status
-@app.get('/usage/{userId}/limit')
-async def check_limit(userId: str):
-    # check if user has a subscription
-    user_subscription = await user_subs_collection.find_one({'user_id': userId})
-    if not user_subscription:
-        raise HTTPException(status_code=404, detail="User not subscribed to any plan")
+# @app.get('/usage/{userId}/limit')
+# async def check_limit(userId: str):
+#     # check if user has a subscription
+#     user_subscription = await user_subs_collection.find_one({'user_id': userId})
+#     if not user_subscription:
+#         raise HTTPException(status_code=404, detail="User not subscribed to any plan")
 
-    plan = await sub_plans_collection.find_one({'_id': ObjectId(user_subscription['plan_id'])})
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
+#     plan = await sub_plans_collection.find_one({'_id': ObjectId(user_subscription['plan_id'])})
+#     if not plan:
+#         raise HTTPException(status_code=404, detail="Plan not found")
     
-     # get current usage
-    usage = await usage_collection.find_one({'user_id': userId})
-    if not usage:
-        usage = {"user_id": userId, "used": 0}
+#      # get current usage
+#     usage = await usage_collection.find_one({'user_id': userId})
+#     if not usage:
+#         usage = {"user_id": userId, "used": 0}
 
     
-    # check if usage exceeds the plan's limit
-    if usage['used'] >= plan['usage_limit']:
-        raise HTTPException(status_code=403, detail="Usage limit exceeded")
+#     # check if usage exceeds the plan's limit
+#     if usage['used'] >= plan['usage_limit']:
+#         raise HTTPException(status_code=403, detail="Usage limit exceeded")
 
-    remaining_limit = plan['usage_limit'] - usage['used']
-    return {"usage_count": usage['used'], "remaining_limit": remaining_limit}
+#     remaining_limit = plan['usage_limit'] - usage['used']
+#     return {"usage_count": usage['used'], "remaining_limit": remaining_limit}

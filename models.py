@@ -16,7 +16,10 @@ class CreatePlan(BaseModel):
 class Permission(BaseModel):
     name: str # read, write, admin, etc
     description: str # describes what the permission does
+    api_endpoint: str
 
+
+# Working on these laters
 class UserSub(BaseModel):
     user_id: str #unique id for user
     plan_id: str # Plan name provied by the User

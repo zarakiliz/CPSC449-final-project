@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from models import CreatePlan
-from database import sub_plans_collection
+from database import sub_plans_collection, permissions_collection
 from utils import get_by_id
 from bson import ObjectId
 from utils import verify_admin
@@ -19,28 +19,47 @@ async def create_plan(plan: CreatePlan, user: dict = Depends(verify_admin)):
     result = await sub_plans_collection.insert_one(plan.dict())
     return {"message": "Plan created successfully", "plan_id": str(result.inserted_id)}
 
+# Get all plans so user can see
+@router.get("/")
+async def get_all_plans():
+    plans = await sub_plans_collection.find().to_list(100)
+    return [
+        {
+            "id": str(plan["_id"]),
+            "name": plan["name"],
+            "description": plan["description"],
+            "permissions": plan["permissions"],
+            "usage_limit": plan["usage_limit"],
+        }
+        for plan in plans
+    ]
 
 # Modifying the plan
 # Implementing try methods to modify and Delete
 @router.put("/{planId}")
 async def modify_plan(planId: str, plan: CreatePlan, user: dict= Depends(verify_admin)): 
-    try: 
+    try:
         object_id = ObjectId(planId)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid plan ID format")
-    
-    # Check to see if the ObjectID is valid and fetch the plan from the database
-    existing_plan = await get_by_id(sub_plans_collection, planId)
-    # Condition to see if plants exits or not
-    if not existing_plan:
+    except:
+        raise HTTPException(status_code=400, detail="Invalid plan ID")
+
+    # Validate permissions
+    for perm_name in plan.permissions:
+        permission = await permissions_collection.find_one({"name": perm_name})
+        if not permission:
+            raise HTTPException(status_code=404, detail=f"Permission '{perm_name}' not found")
+
+    result = await sub_plans_collection.update_one(
+        {"_id": object_id},
+        {"$set": {
+            "name": plan.name,
+            "description": plan.description,
+            "permissions": plan.permissions,
+            "usage_limit": plan.usage_limit
+        }}
+    )
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Plan not found")
-
-
-    # Update the plan
-    await sub_plans_collection.update_one(
-       {"_id": ObjectId(planId)},
-       {"$set": plan.dict()}
-   )
     return {"message": "Plan updated successfully"}
 
 # Deleting a plan
@@ -51,10 +70,9 @@ async def delete_plan(planId: str, user: dict = Depends(verify_admin)):
         object_id = ObjectId(planId)
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid plan ID format")
-    existing_plan = await get_by_id(sub_plans_collection, planId)
-    if not existing_plan:
-        raise HTTPException(status_code=404, detail="Plant not found")
-    
-    # Deleting the plan from the database
-    await sub_plans_collection.delete_one({"_id": ObjectId(planId)})
+
+    # Rewrote the logic
+    result = await sub_plans_collection.delete_one({"_id": object_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
     return {"message": "Plan deleted successfully"}
