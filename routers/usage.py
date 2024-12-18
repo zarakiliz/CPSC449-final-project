@@ -1,46 +1,45 @@
 from fastapi import APIRouter, HTTPException, Depends
-from database import usage_collection, user_subs_collection
+from database import usage_collection
 from utils import verify_customer
 
 router = APIRouter()
 
-# Tracking the API request usage
-@router.post("/{userId}")
-async def track_usage(userId: str, user: dict = Depends(verify_customer)):
-    # Fetching for the user record
+# Combined usage tracking and status endpoint
+# Rewrote uasge to one single endpoint for GET
+@router.get("/{userId}")
+async def track_and_check_usage(userId: str, user: dict = Depends(verify_customer)):
+    # Fetch the user's usage data
     usage = await usage_collection.find_one({"user_id": userId})
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found.")
     
+    # Check if the user has reached their usage limit
     if usage["used"] >= usage["usage_limit"]:
-        raise HTTPException(status_code=403, detail="Usage limit exceeded")
-    
-    # Incrementing to keep track of the limit
-    new_used = usage["used"] + 1
+        # Return the usage status without incrementing
+        return {
+            "user_id": userId,
+            "used": usage["used"],
+            "usage_limit": usage["usage_limit"],
+            "remaining": 0,
+            "status": "blocked",
+            "message": "Usage limit reached. Contact admin for assistance."
+        }
+
+    # Increment usage if the limit has not been reached
     await usage_collection.update_one(
         {"user_id": userId},
-        {"$set": {"used": new_used}}
+        {"$inc": {"used": 1}}
     )
+    
+    # Fetch the updated usage data
+    updated_usage = await usage_collection.find_one({"user_id": userId})
 
-    return {
-        "message": "API usage tracked successfully.",
-        "user_id": userId,
-        "used": new_used,
-        "usage_limit": usage["usage_limit"]
-    }
-
-
-# Creating the limit
-@router.get("/{userId}/limit")
-async def check_usage_limit(userId: str, user: dict = Depends(verify_customer)):
-    # Fetch the user's usage data
-    usage_data = await usage_collection.find_one({"user_id": userId})
-    if not usage_data:
-        raise HTTPException(status_code=404, detail="Usage data not found.")
-
+    # Return the updated usage status
     return {
         "user_id": userId,
-        "used": usage_data["used"],
-        "usage_limit": usage_data["usage_limit"],
-        "remaining": usage_data["usage_limit"] - usage_data["used"]
+        "used": updated_usage["used"],
+        "usage_limit": updated_usage["usage_limit"],
+        "remaining": updated_usage["usage_limit"] - updated_usage["used"],
+        "status": "active",
+        "message": "Usage tracked successfully."
     }

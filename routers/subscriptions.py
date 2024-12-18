@@ -30,7 +30,7 @@ async def subscribe_to_plan(plan_name: str, user: dict = Depends(verify_customer
     await user_subs_collection.insert_one(new_sub)
 
     # Initialize usage tracking
-    await usage_collection.insert_one({
+    result = await usage_collection.insert_one({
         "user_id": user["user_id"],
         "usage_limit": plan.get("usage_limit", 0),
         "used": 0
@@ -74,7 +74,6 @@ async def get_subscription(userId: str):
 
 
 # Adding admin permision modficaiton
-# Modify a User's Subscription - Admin Only
 @router.put("/{userId}/modify")
 async def modify_subscription(userId: str, plan_name: str, admin: dict = Depends(verify_admin)):
     # Check if the user has an existing subscription

@@ -40,36 +40,29 @@ async def create_plan(plan: CreatePlan, user: dict = Depends(verify_admin)):
 
 # Modifying the plan
 # Implementing try methods to modify and Delete
-@router.put("/{planId}")
-async def modify_plan(planId: str, plan: CreatePlan, user: dict = Depends(verify_admin)):
+# Modifying a plan with partial updates
+@router.patch("/{planId}")
+async def modify_plan_partial(planId: str, update_fields: dict, user: dict = Depends(verify_admin)):
     try:
         object_id = ObjectId(planId)
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid plan ID format")
 
-    # Construct permissions list
-    permissions_list = [
-        {
-            "name": perm.name,
-            "description": perm.description,
-            "api_endpoint": perm.api_endpoint
-        }
-        for perm in plan.permissions
-    ]
+    # Check if the plan exists
+    existing_plan = await sub_plans_collection.find_one({"_id": object_id})
+    if not existing_plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
 
-    # Update the plan
+    # Update the plan using the provided fields
     result = await sub_plans_collection.update_one(
         {"_id": object_id},
-        {"$set": {
-            "name": plan.name,
-            "description": plan.description,
-            "permissions": permissions_list,
-            "usage_limit": plan.usage_limit
-        }}
+        {"$set": update_fields}  # Only update the fields provided in the body
     )
+
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    return {"message": "Plan updated successfully"}
+        raise HTTPException(status_code=404, detail="Plan not updated")
+    
+    return {"message": "Plan updated successfully", "updated_fields": update_fields}
 
 
 # Deleting a plan
@@ -109,4 +102,32 @@ async def get_all_plans():
         }
         for plan in plans
     ]
+
+# Get a specific plan by ID
+@router.get("/{planId}")
+async def get_plan_by_id(planId: str):
+    try:
+        object_id = ObjectId(planId)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid plan ID format")
+
+    # Fetch the specific plan
+    plan = await sub_plans_collection.find_one({"_id": object_id})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return {
+        "id": str(plan["_id"]),
+        "name": plan["name"],
+        "description": plan["description"],
+        "permissions": [
+            {
+                "name": perm.get("name", "N/A"),
+                "description": perm.get("description", "No description available"),
+                "api_endpoint": perm.get("api_endpoint", "N/A")
+            }
+            for perm in plan.get("permissions", [])  # Safely iterate over permissions
+        ],
+        "usage_limit": plan.get("usage_limit", 0)
+    }
 
