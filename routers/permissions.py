@@ -109,9 +109,7 @@ async def create_permission(permission: Permission, admin: dict = Depends(verify
 
 
 
-# =============================================
-# 4. View All Permissions for a User's Plan
-# =============================================
+# Fetching the update permissions using admin which they modify
 @router.get("/{userId}/permissions")
 async def view_user_plan_permissions(userId: str, user: dict = Depends(verify_admin)):
     """
