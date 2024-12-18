@@ -64,7 +64,7 @@ Replace `your_secret_key` with a unique secret key for your application and `you
 2. Create a database named `cloudservice` and collections as required by your application.
 3. Update the `.env` file with your MongoDB connection string.
 
-Note: If you can't test it out by creating your own database on MongoDB Atlas. Send an email to 'eorellana96@csu.fullerton.edu' to be invited to the project's MongoDB Atlas account. 
+Note: If you can't test it out by creating your own database on MongoDB Atlas. Send an email to `eorellana96@csu.fullerton.edu` to be invited to the project's MongoDB Atlas account. 
 
 ### 6. Run the Application
 
