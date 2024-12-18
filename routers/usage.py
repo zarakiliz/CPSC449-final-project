@@ -25,12 +25,7 @@ async def track_and_check_usage(userId: str, user: dict = Depends(verify_custome
             "message": "Usage limit reached. Contact admin for assistance."
         }
 
-    # Increment usage if the limit has not been reached
-    await usage_collection.update_one(
-        {"user_id": userId},
-        {"$inc": {"used": 1}}
-    )
-    
+    # Forgot to take out the increment -.- was using the limit on it
     # Fetch the updated usage data
     updated_usage = await usage_collection.find_one({"user_id": userId})
 

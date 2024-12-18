@@ -8,12 +8,11 @@ from bson.errors import InvalidId
 
 router = APIRouter()
 
+# Done
 # Add a new permission
 @router.post("/add-to-user-plan")
 async def add_permission_to_user_plan(userId: str, permission_name: str, admin: dict = Depends(verify_admin)):
-    """
-    Add a permission to the user's plan instance by its name without modifying the global plan.
-    """
+
     # Fetch user subscription
     subscription = await user_subs_collection.find_one({"user_id": userId})
     if not subscription:
@@ -68,12 +67,11 @@ async def remove_permission_from_user_plan(userId: str, permission_name: str, ad
 
     return {"message": f"Permission '{permission_name}' removed successfully from the user's plan."}
 
+# Done
 # Delete a permission
 @router.delete("/{permissionId}")
 async def delete_permission(permissionId: str, admin: dict = Depends(verify_admin)):
-    """
-    Delete a global permission from the database.
-    """
+
     try:
         object_id = ObjectId(permissionId)
     except InvalidId:
@@ -108,13 +106,11 @@ async def create_permission(permission: Permission, admin: dict = Depends(verify
     return {"message": "Permission created successfully", "permission_id": str(result.inserted_id)}
 
 
-
+# Done
 # Fetching the update permissions using admin which they modify
 @router.get("/{userId}/permissions")
 async def view_user_plan_permissions(userId: str, user: dict = Depends(verify_admin)):
-    """
-    Fetch all permissions (global + any modifications) for the user's plan.
-    """
+
     # Fetch user subscription
     subscription = await user_subs_collection.find_one({"user_id": userId})
     if not subscription:
