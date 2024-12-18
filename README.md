@@ -4,8 +4,8 @@ A backend system for managing access to cloud services based on user subscriptio
 
 ## Team Members
 
-- Ariel Monterrosas
-- Elizabeth Orellana
+- Ariel Monterrosas (CWID: 889144572)
+- Elizabeth Orellana (CWID: 887298123)
 
 ## Prerequisites
 
@@ -77,3 +77,4 @@ uvicorn main:app --reload
 The application will be accessible at `http://127.0.0.1:8000`. You can test the API endpoints using tools like **Postman**.
 
 ## Video Demo
+https://drive.google.com/file/d/1naaT_oZNxkxNVP_K-A01zH86IqYMCtEp/view
