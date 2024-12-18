@@ -3,74 +3,75 @@
 A backend system for managing access to cloud services based on user subscriptions.
 
 ## Team Members
-- Ariel Monterrosas 
+
+- Ariel Monterrosas
 - Elizabeth Orellana
 
 ## Prerequisites
+
 - Python 3.x
-- MySQL server
+- MongoDB Atlas account
 - pip (Python package installer)
 
 ## How to Setup
-1. **Clone the Repository**
-   ```bash 
-   git clone https://github.com/zarakiliz/CPSC449-midterm-project
-   cd CPSC449-midterm-project
 
-2. **Create a Virtual Enviornment**
-    - python3 -m venv venv
-    source venv/bin/activate    
-    On Windows, use `venv\Scripts\activate`
+### 1. Clone the Repository
 
-3. **Install Dependencies**
-    - pip install -r requirements.txt
+Clone the project repository to your local machine and navigate to the project directory:
 
-4. **Set up Environment Variables**
-   - Create a `.env` file in the project root with the following entries:
-     ```plaintext
-     SECRET_KEY=your_secret_key
-     MYSQL_USER=your_mysql_user
-     MYSQL_PASSWORD=your_mysql_password
-     MYSQL_DB=your_mysql_db_name
-     MYSQL_HOST=localhost
-     ```
-   - Replace `your_secret_key`, `your_mysql_user`, `your_mysql_password`, and `your_mysql_db_name` with your actual MySQL credentials.
-   
-<!-- 5. **Set up MySQL Database**
-   - Start your MySQL server and create a database. You can use **MySQL Workbench** or the MySQL command line.
-   - Run the following command to create the database:
-     ```sql
-     CREATE DATABASE `CPSC449-midterm-project`;
-     ```
-   - Update the `.env` file to match your MySQL credentials.
+```bash
+git clone https://github.com/zarakiliz/CPSC449-final-project
+cd CPSC449-final-project
+```
 
-6. **Create the User Table**
-   - Open MySQL Workbench (or use the MySQL command line) and run the following commands to create a `users` table and insert test data:
-     ```sql
+### 2. Create a Virtual Environment
 
-     CREATE TABLE users (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       username VARCHAR(255) UNIQUE NOT NULL,
-       password VARCHAR(255) NOT NULL
-     );
+Set up a virtual environment to manage dependencies:
 
-     INSERT INTO users (username, password) VALUES ('Ariel_Monterrosas', 'password123');
-     INSERT INTO users (username, password) VALUES ('Elizabeth_Orellana', 'password456');
-     ```
-   - This will set up the `users` table with two sample entries.
+- On macOS/Linux:
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
+- On Windows:
+  ```bash
+  python -m venv venv
+  venv\Scripts\activate
+  ```
 
-7. **Run Database Migrations (if necessary)**
-   - If additional migrations or database setup steps are needed, include them here or use a tool like Flask-Migrate.
+### 3. Install Dependencies
 
-8. **Test the Database Connection**
-   - Start the Flask application (see next step) and test the database connection by accessing `/public` or using **Postman** to verify data retrieval. -->
+Install the required Python packages listed in the `requirements.txt` file:
 
-9. **Run the Application**
-   - Start the Flask server with the following command:
-     ```bash
-     flask run
-     ```
-   - The application should now be running locally on `http://127.0.0.1:5000`.
-   - You can test the API endpoints using **Postman** or **cURL**. Make sure your MySQL server is running and that the `.env` file is configured correctly.
+```bash
+pip install -r requirements.txt
+```
 
-# Video Demo
+### 4. Set Up Environment Variables
+
+Create a `.env` file in the project root directory with the following entries:
+
+```plaintext
+SECRET_KEY=your_secret_key
+MONGO_URI=your_mongodb_connection_string
+```
+
+Replace `your_secret_key` with a unique secret key for your application and `your_mongodb_connection_string` with the connection string for your MongoDB Atlas database.
+
+### 5. Configure MongoDB Atlas
+
+1. Log in to your [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account and set up a cluster if you don’t already have one.
+2. Create a database named `cloudservice` and collections as required by your application.
+3. Update the `.env` file with your MongoDB connection string.
+
+### 6. Run the Application
+
+Start the FastAPI server locally:
+
+```bash
+uvicorn main:app --reload
+```
+
+The application will be accessible at `http://127.0.0.1:8000`. You can test the API endpoints using tools like **Postman**.
+
+## Video Demo

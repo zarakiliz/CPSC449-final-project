@@ -2,3 +2,4 @@ uvicorn
 fastapi
 motor
 pyMongo
+python-dotenv
